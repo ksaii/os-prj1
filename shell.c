@@ -52,6 +52,7 @@ void print_prompt()
     result = getcwd(cwd, sizeof(cwd));
     if (result != NULL)
     {
+        // chose orange
         printf("\033[38;5;208m%s$\033[0m ", cwd);
     }
     else
@@ -114,14 +115,14 @@ int main()
 
         if (strcmp(args[0], "exit") == 0)
         {
-            printf("exit\n");
+            printf("EXITING!\n");
             break;
         }
         else if (strcmp(args[0], "cd") == 0)
         {
             if (args[1] == NULL)
             {
-                fprintf(stderr, "cd: missing argument\n");
+                fprintf(stderr, "Error: Missing an Argument!\n");
             }
             else
             {
