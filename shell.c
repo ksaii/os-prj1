@@ -6,33 +6,51 @@
 #include <errno.h>
 
 #define MAX_LINE 1024
-#define MAX_TOKENS 10
-#define MAX_HISTORY 5
+#define MAX_NUM_TOKENS 10
+#define MAX_PID_HISTORY 5
 
-pid_t pid_history[MAX_HISTORY];
-int pid_count = 0;
+pid_t pid_history[MAX_PID_HISTORY];
+int pid_count;
 
 void add_pid(pid_t pid)
 {
-    pid_history[pid_count % MAX_HISTORY] = pid;
-    pid_count++;
+    int index;
+    index = pid_count % MAX_PID_HISTORY;
+    pid_history[index] = pid;
+    pid_count = pid_count + 1;
 }
 
 void show_pid_history()
 {
-    int start = (pid_count >= MAX_HISTORY) ? pid_count - MAX_HISTORY : 0;
-
+    int start;
     int i;
-    for (i = start; i < pid_count; i++)
+
+    if (pid_count >= MAX_PID_HISTORY)
     {
-        printf("%d\n", pid_history[i % MAX_HISTORY]);
+        start = pid_count - MAX_PID_HISTORY;
+    }
+    else
+    {
+        start = 0;
+    }
+
+    i = start;
+    while (i < pid_count)
+    {
+        int index;
+        index = i % MAX_PID_HISTORY;
+        printf("%d\n", pid_history[index]);
+        i = i + 1;
     }
 }
 
 void print_prompt()
 {
     char cwd[1024];
-    if (getcwd(cwd, sizeof(cwd)) != NULL)
+    char *result;
+
+    result = getcwd(cwd, sizeof(cwd));
+    if (result != NULL)
     {
         printf("\033[38;5;208m%s$\033[0m ", cwd);
     }
@@ -46,7 +64,14 @@ void print_prompt()
 int main()
 {
     char line[MAX_LINE];
-    char *args[MAX_TOKENS + 1];
+    char *args[MAX_NUM_TOKENS + 1];
+    char *token;
+    int i;
+    pid_t pid;
+    int status;
+    int result;
+
+    pid_count = 0;
 
     while (1)
     {
@@ -61,20 +86,31 @@ int main()
         line[strcspn(line, "\n")] = 0;
 
         if (strlen(line) == 0)
-            continue;
-
-        memset(args, 0, sizeof(args));
-        char *token = strtok(line, " ");
-        int i = 0;
-        while (token != NULL && i < MAX_TOKENS)
         {
-            args[i++] = token;
+            continue;
+        }
+
+        i = 0;
+        while (i <= MAX_NUM_TOKENS)
+        {
+            args[i] = NULL;
+            i = i + 1;
+        }
+
+        token = strtok(line, " ");
+        i = 0;
+        while (token != NULL && i < MAX_NUM_TOKENS)
+        {
+            args[i] = token;
+            i = i + 1;
             token = strtok(NULL, " ");
         }
         args[i] = NULL;
 
         if (args[0] == NULL)
+        {
             continue;
+        }
 
         if (strcmp(args[0], "exit") == 0)
         {
@@ -89,7 +125,8 @@ int main()
             }
             else
             {
-                if (chdir(args[1]) != 0)
+                result = chdir(args[1]);
+                if (result != 0)
                 {
                     perror("cd");
                 }
@@ -106,14 +143,16 @@ int main()
             continue;
         }
 
-        pid_t pid = fork();
+        pid = fork();
+
         if (pid < 0)
         {
             perror("fork failed");
         }
         else if (pid == 0)
         {
-            if (execvp(args[0], args) == -1)
+            result = execvp(args[0], args);
+            if (result == -1)
             {
                 fprintf(stderr, "Error: Command could not be executed\n");
             }
@@ -122,7 +161,6 @@ int main()
         else
         {
             add_pid(pid);
-            int status;
             waitpid(pid, &status, 0);
         }
     }
