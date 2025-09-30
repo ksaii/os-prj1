@@ -30,7 +30,8 @@ void show_pid_history() {
 void print_prompt() {
     char cwd[1024];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        // green color
+        
+        // orange color
         printf("\033[38;5;208m%s$\033[0m ", cwd);
     } else {
         printf("prompt$ ");
